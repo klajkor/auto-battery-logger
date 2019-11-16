@@ -1,1 +1,1 @@
-# auto-battery-logger
+# Automotive battery voltage logger
