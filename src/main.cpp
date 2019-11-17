@@ -60,7 +60,7 @@ Adafruit_INA219 ina219_monitor;
 const int RTC_I2C_addr = 0x68;
 // RTC class
 uRTCLib rtc(RTC_I2C_addr);
-#define ALARM_INTERVAL_MINUTES 5
+#define ALARM_INTERVAL_MINUTES 2
 
 // SD card modul chip select
 #define SDCARD_CHIP_SELECT 10
@@ -81,6 +81,8 @@ uint8_t rtc_hour = 0;
 uint8_t rtc_day = 0;
 uint8_t rtc_month = 0;
 uint8_t rtc_year = 0;
+float rtc_temperature = 0;
+char rtc_TemperatureString[] = "999.9 ";
 
 // Current sensor variables
 float f_BusVoltage_V;    /** Measured bus voltage */
@@ -257,7 +259,9 @@ bool Log_To_SD_card(void)
       dataFile.print(TemperatureString);
       dataFile.print(F(",C,"));
       dataFile.print(HumidityString);
-      dataFile.println(F(",%"));
+      dataFile.print(F(",%,"));
+      dataFile.print(rtc_TemperatureString);
+      dataFile.println(F(",C"));
       dataFile.close();
       Serial.println(F(" OK"));
     }
@@ -309,14 +313,20 @@ void get_Temp_Humid(void)
 {
   temperature = dht.readTemperature(); // Read temperature as Celsius (default setting)
   humidity = dht.readHumidity();
+  rtc_temperature = ((float) rtc.temp() / 100);
   dtostrf((temperature), 5, 1, TemperatureString);
+  dtostrf((rtc_temperature), 5, 1, rtc_TemperatureString);
   dtostrf(humidity, 6, 2, HumidityString);
   Serial.print(F("Temp:"));
   Serial.print(TemperatureString);
   Serial.print(F(" *C "));
   Serial.print(F("Humid:"));
   Serial.print(HumidityString);
-  Serial.println(F(" %"));
+  Serial.print(F(" % "));
+  Serial.print(F("RTC Temp:"));
+  Serial.print(rtc_TemperatureString);
+  Serial.println(F(" *C "));
+  
 }
 
 void get_Voltage_Current(void)
