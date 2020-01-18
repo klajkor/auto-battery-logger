@@ -83,7 +83,8 @@ uRTCLib rtc(RTC_I2C_addr);
 #define DHTTYPE DHT22 // DHT DHT 22  (AM2302)
 DHT dht(DHT22_DATA_PIN, DHTTYPE);
 
-#define WakeUpInterruptPin 2 //INT0 is on pin D2 in Arduino
+#define WakeUpInterruptPin 3 //INT0 is on pin D2 in Arduino
+
 
 /* Global variables */
 
@@ -155,12 +156,12 @@ void setup()
 
 void loop()
 {
-  sleep_enable();
   periph_Power_Off();
-  attachInterrupt(0, wakeUp, LOW); //0 = pin D2
+  sleep_enable();
+  attachInterrupt(digitalPinToInterrupt(WakeUpInterruptPin), wakeUp, LOW);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); //full sleep
   Serial.println(F("sleep starts"));
-  delay(200);
+  delay(300);
   sleep_cpu();
   periph_Power_On();
   Serial.println(F("back from sleep")); 
@@ -176,6 +177,7 @@ void loop()
     get_Temp_Humid();
     Log_To_SD_card();
     rtc.alarmClearFlag(URTCLIB_ALARM_1);
+    rtc.alarmClearFlag(URTCLIB_ALARM_2);
     set_Next_Alarm(ALARM_INTERVAL_MINUTES);
     delay(1000);
     digitalWrite(LED_BUILTIN, HIGH);     //turning LED off
@@ -185,7 +187,7 @@ void loop()
 
 void wakeUp(void){
   sleep_disable();
-  detachInterrupt(0); //Removes the interrupt from pin D2;
+  detachInterrupt(digitalPinToInterrupt(WakeUpInterruptPin));
   Serial.println(F("wakeUp")); 
 }
 
@@ -313,6 +315,7 @@ void GPIO_Init(void)
 {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(WakeUpInterruptPin, INPUT_PULLUP);
+  //pinMode(WakeUpInterruptPin, INPUT);
   digitalWrite(LED_BUILTIN, LOW);
   periph_Power_On();  
 }
@@ -374,6 +377,8 @@ void set_Next_Alarm(uint8_t interval_minute)
   next_alarm_minute = (rtc.minute() + interval_minute) % 60;
 
   rtc.alarmSet(URTCLIB_ALARM_TYPE_1_FIXED_MS, 0, next_alarm_minute, 0, 0);
+  Serial.print(F("next alarm minute:"));
+  Serial.println(next_alarm_minute);
  }
 
 void periph_Power_On(void) {
@@ -387,4 +392,5 @@ void periph_Power_On(void) {
 void periph_Power_Off(void) {
   digitalWrite(INA219_VCC_PIN, LOW);
   digitalWrite(DHT22_VCC_PIN, LOW);
+  delay(100);
 }
