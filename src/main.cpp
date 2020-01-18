@@ -27,6 +27,11 @@
 * - SCK - pin A5
 * - SDA - pin A4
 *
+* INA219:
+* - SCK - pin A5
+* - SDA - pin A4
+* - VCC - pin D6
+*
 * SD card on SPI bus:
 * - MOSI - pin D11
 * - MISO - pin D12
@@ -35,6 +40,12 @@
 *
 * DHT22 sensor:
 * - DATA - pin D4
+* - VCC - pin D5
+*
+* DS3231 RTC
+* - SCK - pin A5
+* - SDA - pin A4
+* - SQW - pin D2
 */
 
 /**
@@ -54,6 +65,7 @@
 /* Declarations and initializations */
 
 // Current and voltage sensor class
+#define INA219_VCC_PIN 6      // INA219 VCC pin
 Adafruit_INA219 ina219_monitor;
 
 // DS3231 RTC modul I2C address
@@ -66,9 +78,10 @@ uRTCLib rtc(RTC_I2C_addr);
 #define SDCARD_CHIP_SELECT 10
 
 //DHT22 Humidity/Temperature Sensor
-#define DHTPIN 4      // DHT sensor pin
+#define DHT22_DATA_PIN 4      // DHT sensor pin
+#define DHT22_VCC_PIN 5      // DHT VCC pin
 #define DHTTYPE DHT22 // DHT DHT 22  (AM2302)
-DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHT22_DATA_PIN, DHTTYPE);
 
 #define WakeUpInterruptPin 2 //INT0 is on pin D2 in Arduino
 
@@ -118,6 +131,8 @@ void get_Voltage_Current(void);
 void rtc_Init(void);
 void set_Next_Alarm(uint8_t interval_minute);
 void wakeUp(void);
+void periph_Power_On(void);
+void periph_Power_Off(void);
 
 void setup()
 {
@@ -133,7 +148,7 @@ void setup()
   setTimeStampString();
   get_Voltage_Current();
   get_Temp_Humid();
-  Log_To_SD_card();
+  Log_To_SD_card();  
   
   set_Next_Alarm(ALARM_INTERVAL_MINUTES);
 }
@@ -141,11 +156,13 @@ void setup()
 void loop()
 {
   sleep_enable();
+  periph_Power_Off();
   attachInterrupt(0, wakeUp, LOW); //0 = pin D2
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); //full sleep
   Serial.println(F("sleep starts"));
   delay(200);
   sleep_cpu();
+  periph_Power_On();
   Serial.println(F("back from sleep")); 
   
   // log all data to file
@@ -169,7 +186,7 @@ void loop()
 void wakeUp(void){
   sleep_disable();
   detachInterrupt(0); //Removes the interrupt from pin D2;
-  Serial.println(F("IF")); 
+  Serial.println(F("wakeUp")); 
 }
 
 /**
@@ -271,12 +288,7 @@ bool Log_To_SD_card(void)
 
 void ina219_Init(void)
 {
-  ina219_monitor.begin();
-  //Serial.println(F("INA219 begin done"));
-  // begin calls:
-  // configure() with default values RANGE_32V, GAIN_8_320MV, ADC_12BIT, ADC_12BIT, CONT_SH_BUS
-  // calibrate() with default values D_SHUNT=0.1, D_V_BUS_MAX=32, D_V_SHUNT_MAX=0.2, D_I_MAX_EXPECTED=2
-  // in order to work directly with ADAFruit's INA219B breakout
+  ina219_monitor.begin();  
 }
 
 void SD_Card_Init(void)
@@ -301,7 +313,8 @@ void GPIO_Init(void)
 {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(WakeUpInterruptPin, INPUT_PULLUP);
-  digitalWrite(LED_BUILTIN, LOW); //turning LED on
+  digitalWrite(LED_BUILTIN, LOW);
+  periph_Power_On();  
 }
 
 void dht22_Init(void)
@@ -363,3 +376,15 @@ void set_Next_Alarm(uint8_t interval_minute)
   rtc.alarmSet(URTCLIB_ALARM_TYPE_1_FIXED_MS, 0, next_alarm_minute, 0, 0);
  }
 
+void periph_Power_On(void) {
+  pinMode(INA219_VCC_PIN, OUTPUT);
+  pinMode(DHT22_VCC_PIN, OUTPUT);
+  digitalWrite(INA219_VCC_PIN, HIGH);
+  digitalWrite(DHT22_VCC_PIN, HIGH);
+  delay(500);
+}
+
+void periph_Power_Off(void) {
+  digitalWrite(INA219_VCC_PIN, LOW);
+  digitalWrite(DHT22_VCC_PIN, LOW);
+}
