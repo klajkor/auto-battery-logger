@@ -172,6 +172,7 @@ void loop()
   {
     */
     digitalWrite(LED_BUILTIN, LOW);     //turning LED on
+    dht22_Init();
     setTimeStampString();
     get_Voltage_Current();
     get_Temp_Humid();
@@ -317,6 +318,8 @@ void GPIO_Init(void)
   pinMode(WakeUpInterruptPin, INPUT_PULLUP);
   //pinMode(WakeUpInterruptPin, INPUT);
   digitalWrite(LED_BUILTIN, LOW);
+  pinMode(INA219_VCC_PIN, OUTPUT);
+  pinMode(DHT22_VCC_PIN, OUTPUT);  
   periph_Power_On();  
 }
 
@@ -382,11 +385,9 @@ void set_Next_Alarm(uint8_t interval_minute)
  }
 
 void periph_Power_On(void) {
-  pinMode(INA219_VCC_PIN, OUTPUT);
-  pinMode(DHT22_VCC_PIN, OUTPUT);
   digitalWrite(INA219_VCC_PIN, HIGH);
   digitalWrite(DHT22_VCC_PIN, HIGH);
-  delay(500);
+  delay(1000);
 }
 
 void periph_Power_Off(void) {
